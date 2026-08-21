@@ -1,5 +1,5 @@
 import { User } from "../models/User.model.js";
-import type { IUser } from "../models/User.model.js";
+import type { IUser, UserDocument } from "../models/User.model.js";
 
 interface CreateUserData {
   name: string;
@@ -8,16 +8,22 @@ interface CreateUserData {
 }
 
 class UserRepository {
-  async findByEmail(email: string): Promise<IUser | null> {
-    const user = await User.findOne({ email }).select("+passwordHash");
-
-    return user;
+  async findByEmail(email: string): Promise<UserDocument | null> {
+    return User.findOne({ email });
   }
 
-  async create(data: CreateUserData): Promise<IUser> {
-    const user = await User.create(data);
+  async findByEmailWithPassword(
+    email: string,
+  ): Promise<UserDocument | null> {
+    return User.findOne({ email }).select("+passwordHash");
+  }
 
-    return user;
+  async create(data: CreateUserData): Promise<UserDocument> {
+    return User.create(data);
+  }
+
+  async findById(userId: string): Promise<UserDocument | null> {
+    return User.findById(userId);
   }
 }
 

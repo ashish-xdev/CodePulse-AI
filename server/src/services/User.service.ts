@@ -1,6 +1,7 @@
 import bcrypt from "bcrypt";
 import { userRepository } from "../repository/User.repository.js";
 import { AppError } from "../errors/AppError.js";
+import jwt from "jsonwebtoken";
 
 interface registerUserData {
   name: string;
@@ -22,6 +23,45 @@ class UserService {
       email: data.email,
       passwordHash,
     });
+    return user;
+  }
+
+  async login(email: string, password: string) {
+    const user = await userRepository.findByEmailWithPassword(email);
+
+    if (!user) {
+      throw new AppError("Invalid email or password", 401);
+    }
+
+    const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
+
+    if (!isPasswordValid) {
+      throw new AppError("Invalid email or password", 401);
+    }
+
+    const token = jwt.sign(
+      {
+        userId: user._id.toString(),
+      },
+      process.env.JWT_SECRET as string,
+      {
+        expiresIn: "7d",
+      },
+    );
+
+    return {
+      user,
+      token,
+    };
+  }
+
+  async getCurrentUser(userId: string) {
+    const user = await userRepository.findById(userId);
+
+    if(!user) {
+      throw new AppError("User not found", 404);
+    }
+
     return user;
   }
 }

@@ -1,10 +1,13 @@
 import { Schema, model } from "mongoose";
+import type { HydratedDocument } from "mongoose";
 
 export interface IUser {
   name: string;
   email: string;
   passwordHash: string;
 }
+
+export type UserDocument = HydratedDocument<IUser>;
 
 const userSchema = new Schema<IUser>(
   {
