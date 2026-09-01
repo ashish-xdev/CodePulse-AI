@@ -1,3 +1,4 @@
+import { Types } from "mongoose";
 import { codeFileRepository } from "../repository/CodeFile.repository.js";
 import { analysisRepository } from "../repository/Analysis.repository.js";
 import { geminiClient } from "../ai/Gemini.client.js";
@@ -6,22 +7,23 @@ import type { ICodeFile } from "../models/CodeFile.model.js";
 
 interface AnalyzeCodeData {
   codeFileId: string;
-  ownerId: ICodeFile["ownerId"];
+  ownerId: string;
 }
 
 class AnalysisService {
   async analyze(data: AnalyzeCodeData) {
     const codeFile = await codeFileRepository.findByIdAndOwnerId(
       data.codeFileId,
-      data.ownerId,
+      new Types.ObjectId(data.ownerId),
     );
 
     if (!codeFile) {
       throw new AppError("Code file not found", 404);
     }
 
-    const existingAnalysis =
-      await analysisRepository.findByCodeFileId(codeFile._id);
+    const existingAnalysis = await analysisRepository.findByCodeFileId(
+      codeFile._id,
+    );
 
     const analysis =
       existingAnalysis ??
@@ -36,15 +38,14 @@ class AnalysisService {
         codeFile.content,
       );
 
-      const updatedAnalysis =
-        await analysisRepository.updateResult(
-          analysis._id.toString(),
-          {
-            summary: result.summary,
-            overallScore: result.overallScore,
-            status: "completed",
-          },
-        );
+      const updatedAnalysis = await analysisRepository.updateResult(
+        analysis._id.toString(),
+        {
+          summary: result.summary,
+          overallScore: result.overallScore,
+          status: "completed",
+        },
+      );
 
       if (!updatedAnalysis) {
         throw new AppError("Analysis not found", 404);
@@ -55,14 +56,11 @@ class AnalysisService {
         findings: result.findings,
       };
     } catch (error) {
-      await analysisRepository.updateResult(
-        analysis._id.toString(),
-        {
-          summary: "Analysis failed",
-          overallScore: 0,
-          status: "failed",
-        },
-      );
+      await analysisRepository.updateResult(analysis._id.toString(), {
+        summary: "Analysis failed",
+        overallScore: 0,
+        status: "failed",
+      });
 
       throw error;
     }
