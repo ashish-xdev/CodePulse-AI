@@ -8,6 +8,7 @@ export const analysisResponseSchema = z.object({
     z.object({
       lineStart: z.number().int().positive(),
       lineEnd: z.number().int().positive(),
+      improvedCode: z.string().min(1),
 
       type: z.enum([
         "bug",
