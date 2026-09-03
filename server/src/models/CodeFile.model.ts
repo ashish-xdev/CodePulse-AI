@@ -39,7 +39,6 @@ const codeFileSchema = new Schema<ICodeFile>(
     expiresAt: {
       type: Date,
       required: true,
-      index: true,
     },
   },
   {
