@@ -1,9 +1,9 @@
+import { Types } from "mongoose";
 import { codeFileRepository } from "../repository/CodeFile.repository.js";
 import { AppError } from "../errors/AppError.js";
-import type { ICodeFile } from "../models/CodeFile.model.js";
 
 interface CreateCodeFileData {
-  ownerId: ICodeFile["ownerId"];
+  ownerId: string;
   filename: string;
   language: string;
   content: string;
@@ -20,21 +20,21 @@ class CodeFileService {
       );
     }
 
-    const existingFile = await codeFileRepository.findByOwnerId(
-      data.ownerId,
-    );
+    const ownerId = new Types.ObjectId(data.ownerId);
+
+    const existingFile = await codeFileRepository.findByOwnerId(ownerId);
 
     if (existingFile) {
       await codeFileRepository.deleteById(
         existingFile._id.toString(),
-        data.ownerId,
+        ownerId,
       );
     }
 
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
 
     const codeFile = await codeFileRepository.create({
-      ownerId: data.ownerId,
+      ownerId,
       filename: data.filename,
       language: data.language,
       content: data.content,
