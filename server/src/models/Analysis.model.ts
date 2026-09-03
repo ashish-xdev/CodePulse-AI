@@ -40,7 +40,7 @@ const analysisSchema = new Schema<IAnalysis>(
     expiresAt: {
       type: Date,
       required: true,
-      index: true,
+      
     },
   },
   {
