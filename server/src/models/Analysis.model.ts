@@ -5,6 +5,7 @@ export interface IAnalysis {
   codeFileId: Types.ObjectId;
   summary?: string;
   overallScore?: number;
+  improvedCode?: string;
   status: "pending" | "completed" | "failed";
   expiresAt: Date;
 }
@@ -30,6 +31,10 @@ const analysisSchema = new Schema<IAnalysis>(
       max: 100,
     },
 
+    improvedCode: {
+      type: String,
+    },
+
     status: {
       type: String,
       enum: ["pending", "completed", "failed"],
@@ -40,20 +45,19 @@ const analysisSchema = new Schema<IAnalysis>(
     expiresAt: {
       type: Date,
       required: true,
-      
     },
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 analysisSchema.index(
   { expiresAt: 1 },
-  { expireAfterSeconds: 0 }
+  { expireAfterSeconds: 0 },
 );
 
 export const Analysis = model<IAnalysis>(
   "Analysis",
-  analysisSchema
+  analysisSchema,
 );
