@@ -1,9 +1,9 @@
 import { Types } from "mongoose";
 import { codeFileRepository } from "../repository/CodeFile.repository.js";
 import { analysisRepository } from "../repository/Analysis.repository.js";
+import { findingRepository } from "../repository/Finding.repository.js";
 import { geminiClient } from "../ai/Gemini.client.js";
 import { AppError } from "../errors/AppError.js";
-import type { ICodeFile } from "../models/CodeFile.model.js";
 
 interface AnalyzeCodeData {
   codeFileId: string;
@@ -52,16 +52,36 @@ class AnalysisService {
         throw new AppError("Analysis not found", 404);
       }
 
+      await findingRepository.deleteByAnalysisId(
+        analysis._id,
+      );
+
+      await findingRepository.createMany(
+        result.findings.map((finding) => ({
+          analysisId: analysis._id,
+          lineStart: finding.lineStart,
+          lineEnd: finding.lineEnd,
+          type: finding.type,
+          severity: finding.severity,
+          title: finding.title,
+          description: finding.description,
+          suggestion: finding.suggestion,
+        })),
+      );
+
       return {
         analysis: updatedAnalysis,
         findings: result.findings,
       };
     } catch (error) {
-      await analysisRepository.updateResult(analysis._id.toString(), {
-        summary: "Analysis failed",
-        overallScore: 0,
-        status: "failed",
-      });
+      await analysisRepository.updateResult(
+        analysis._id.toString(),
+        {
+          summary: "Analysis failed",
+          overallScore: 0,
+          status: "failed",
+        },
+      );
 
       throw error;
     }
