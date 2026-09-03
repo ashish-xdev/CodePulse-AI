@@ -35,8 +35,21 @@ Identify meaningful:
 
 Only report issues that are genuinely useful to the developer.
 
-For every finding, identify the affected line range and explain
-why the code should be improved.
+For every finding:
+- identify the affected line range
+- explain why the code should be improved
+- provide a practical suggestion
+
+Also generate an improved version of the COMPLETE source code.
+
+Rules for improvedCode:
+- Return the complete source code, not only changed lines.
+- Preserve the original functionality.
+- Apply only meaningful improvements.
+- Do not remove working functionality unnecessarily.
+- Keep the same programming language.
+- If the original code is already good, return a minimally improved version.
+- Do not wrap the improved code in Markdown code fences.
 
 Source code:
 

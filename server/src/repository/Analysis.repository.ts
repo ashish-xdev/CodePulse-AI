@@ -13,6 +13,7 @@ interface UpdateAnalysisResultData {
   summary: string;
   overallScore: number;
   status: "completed" | "failed";
+  improvedCode?: string;
 }
 
 class AnalysisRepository {

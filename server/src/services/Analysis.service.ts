@@ -43,6 +43,7 @@ class AnalysisService {
         {
           summary: result.summary,
           overallScore: result.overallScore,
+          improvedCode: result.improvedCode,
           status: "completed",
         },
       );

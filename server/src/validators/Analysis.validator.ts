@@ -3,12 +3,12 @@ import { z } from "zod";
 export const analysisResponseSchema = z.object({
   summary: z.string().min(1),
   overallScore: z.number().int().min(0).max(100),
+  improvedCode: z.string().min(1),
 
   findings: z.array(
     z.object({
       lineStart: z.number().int().positive(),
       lineEnd: z.number().int().positive(),
-      improvedCode: z.string().min(1),
 
       type: z.enum([
         "bug",
