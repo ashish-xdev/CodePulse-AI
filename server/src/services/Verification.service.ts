@@ -1,6 +1,7 @@
 import { Types } from "mongoose";
 import { analysisRepository } from "../repository/Analysis.repository.js";
 import { codeFileRepository } from "../repository/CodeFile.repository.js";
+import { codeFileService } from "./CodeFile.service.js";
 import { verificationRepository } from "../repository/Verification.repository.js";
 import { AppError } from "../errors/AppError.js";
 
@@ -18,9 +19,7 @@ class VerificationService {
     const analysisId = new Types.ObjectId(data.analysisId);
     const ownerId = new Types.ObjectId(data.ownerId);
 
-    const analysis = await analysisRepository.findById(
-      data.analysisId,
-    );
+    const analysis = await analysisRepository.findById(data.analysisId);
 
     if (!analysis) {
       throw new AppError("Analysis not found", 404);
@@ -35,18 +34,15 @@ class VerificationService {
       throw new AppError("Analysis not found", 404);
     }
 
+    await codeFileService.refreshExpiry(codeFile._id.toString(), data.ownerId);
+
     const improvedCodePresent =
       typeof analysis.improvedCode === "string" &&
       analysis.improvedCode.trim().length > 0;
 
-    const syntaxValid = this.performBasicSyntaxCheck(
-      analysis.improvedCode,
-    );
+    const syntaxValid = this.performBasicSyntaxCheck(analysis.improvedCode);
 
-    const status =
-      improvedCodePresent && syntaxValid
-        ? "passed"
-        : "failed";
+    const status = improvedCodePresent && syntaxValid ? "passed" : "failed";
 
     const message =
       status === "passed"
@@ -54,14 +50,10 @@ class VerificationService {
         : "Improved code failed basic verification";
 
     const existingVerification =
-      await verificationRepository.findByAnalysisId(
-        analysisId,
-      );
+      await verificationRepository.findByAnalysisId(analysisId);
 
     if (existingVerification) {
-      await verificationRepository.deleteByAnalysisId(
-        analysisId,
-      );
+      await verificationRepository.deleteByAnalysisId(analysisId);
     }
 
     return verificationRepository.create({
@@ -74,9 +66,7 @@ class VerificationService {
     });
   }
 
-  private performBasicSyntaxCheck(
-    code: string | undefined,
-  ): boolean {
+  private performBasicSyntaxCheck(code: string | undefined): boolean {
     if (!code || code.trim().length === 0) {
       return false;
     }
@@ -84,15 +74,11 @@ class VerificationService {
     const openingBraces = (code.match(/{/g) ?? []).length;
     const closingBraces = (code.match(/}/g) ?? []).length;
 
-    const openingParentheses =
-      (code.match(/\(/g) ?? []).length;
-    const closingParentheses =
-      (code.match(/\)/g) ?? []).length;
+    const openingParentheses = (code.match(/\(/g) ?? []).length;
+    const closingParentheses = (code.match(/\)/g) ?? []).length;
 
-    const openingBrackets =
-      (code.match(/\[/g) ?? []).length;
-    const closingBrackets =
-      (code.match(/]/g) ?? []).length;
+    const openingBrackets = (code.match(/\[/g) ?? []).length;
+    const closingBrackets = (code.match(/]/g) ?? []).length;
 
     return (
       openingBraces === closingBraces &&
@@ -102,5 +88,4 @@ class VerificationService {
   }
 }
 
-export const verificationService =
-  new VerificationService();
+export const verificationService = new VerificationService();
