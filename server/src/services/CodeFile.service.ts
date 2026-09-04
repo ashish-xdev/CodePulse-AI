@@ -22,7 +22,9 @@ class CodeFileService {
 
     const ownerId = new Types.ObjectId(data.ownerId);
 
-    const existingFile = await codeFileRepository.findByOwnerId(ownerId);
+    const existingFile = await codeFileRepository.findByOwnerId(
+      ownerId,
+    );
 
     if (existingFile) {
       await codeFileRepository.deleteById(
@@ -42,6 +44,30 @@ class CodeFileService {
     });
 
     return codeFile;
+  }
+
+  async refreshExpiry(fileId: string, ownerId: string) {
+    if (!Types.ObjectId.isValid(fileId)) {
+      throw new AppError("Invalid code file ID", 400);
+    }
+
+    if (!Types.ObjectId.isValid(ownerId)) {
+      throw new AppError("Invalid user ID", 400);
+    }
+
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+
+    const updatedFile = await codeFileRepository.updateExpiry(
+      fileId,
+      new Types.ObjectId(ownerId),
+      expiresAt,
+    );
+
+    if (!updatedFile) {
+      throw new AppError("Code file not found", 404);
+    }
+
+    return updatedFile;
   }
 }
 

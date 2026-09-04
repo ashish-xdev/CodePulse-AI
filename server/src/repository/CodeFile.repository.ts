@@ -13,6 +13,25 @@ interface CreateCodeFileData {
 }
 
 class CodeFileRepository {
+  async updateExpiry(
+  fileId: string,
+  ownerId: ICodeFile["ownerId"],
+  expiresAt: Date,
+): Promise<CodeFileDocument | null> {
+  return CodeFile.findOneAndUpdate(
+    {
+      _id: fileId,
+      ownerId,
+    },
+    {
+      expiresAt,
+    },
+    {
+      new: true,
+    },
+  );
+}
+
   async create(data: CreateCodeFileData): Promise<CodeFileDocument> {
     return CodeFile.create(data);
   }
