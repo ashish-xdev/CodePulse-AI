@@ -1,8 +1,5 @@
 import { Analysis } from "../models/Analysis.model.js";
-import type {
-  IAnalysis,
-  AnalysisDocument,
-} from "../models/Analysis.model.js";
+import type { IAnalysis, AnalysisDocument } from "../models/Analysis.model.js";
 
 interface CreateAnalysisData {
   codeFileId: IAnalysis["codeFileId"];
@@ -21,6 +18,10 @@ class AnalysisRepository {
     return Analysis.create(data);
   }
 
+  async findById(analysisId: string): Promise<AnalysisDocument | null> {
+    return Analysis.findById(analysisId);
+  }
+
   async findByCodeFileId(
     codeFileId: IAnalysis["codeFileId"],
   ): Promise<AnalysisDocument | null> {
@@ -31,11 +32,7 @@ class AnalysisRepository {
     analysisId: string,
     data: UpdateAnalysisResultData,
   ): Promise<AnalysisDocument | null> {
-    return Analysis.findByIdAndUpdate(
-      analysisId,
-      data,
-      { new: true },
-    );
+    return Analysis.findByIdAndUpdate(analysisId, data, { new: true });
   }
 
   async deleteByCodeFileId(
