@@ -1,106 +1,106 @@
 import { Types } from "mongoose";
-import { findingRepository } from "../repository/Finding.repository.js";
+import { codeFileRepository } from "../repository/CodeFile.repository.js";
+import { analysisRepository } from "../repository/Analysis.repository.js";
+import { findingService } from "./Finding.service.js";
+import { codeFileService } from "./CodeFile.service.js";
+import { geminiClient } from "../ai/Gemini.client.js";
 import { AppError } from "../errors/AppError.js";
 
-interface CreateFindingData {
-  analysisId: string;
-  lineStart: number;
-  lineEnd: number;
-  type:
-    | "bug"
-    | "performance"
-    | "security"
-    | "maintainability"
-    | "readability"
-    | "best-practice";
-  severity:
-    | "low"
-    | "medium"
-    | "high"
-    | "critical";
-  title: string;
-  description: string;
-  suggestion: string;
+interface AnalyzeCodeData {
+  codeFileId: string;
+  ownerId: string;
 }
 
-class FindingService {
-  async create(data: CreateFindingData) {
-    if (!Types.ObjectId.isValid(data.analysisId)) {
-      throw new AppError("Invalid analysis ID", 400);
+class AnalysisService {
+  async analyze(data: AnalyzeCodeData) {
+    if (!Types.ObjectId.isValid(data.codeFileId)) {
+      throw new AppError("Invalid code file ID", 400);
     }
 
-    const analysisId = new Types.ObjectId(data.analysisId);
+    if (!Types.ObjectId.isValid(data.ownerId)) {
+      throw new AppError("Invalid user ID", 400);
+    }
 
-    if (data.lineEnd < data.lineStart) {
-      throw new AppError(
-        "Finding lineEnd cannot be less than lineStart",
-        400,
+    const codeFile = await codeFileRepository.findByIdAndOwnerId(
+      data.codeFileId,
+      new Types.ObjectId(data.ownerId),
+    );
+
+    if (!codeFile) {
+      throw new AppError("Code file not found", 404);
+    }
+
+    // Analysis is a meaningful user action.
+    await codeFileService.refreshExpiry(
+      data.codeFileId,
+      data.ownerId,
+    );
+
+    const existingAnalysis = await analysisRepository.findByCodeFileId(
+      codeFile._id,
+    );
+
+    const analysis =
+      existingAnalysis ??
+      (await analysisRepository.create({
+        codeFileId: codeFile._id,
+        expiresAt: new Date(Date.now() + 5 * 60 * 1000),
+      }));
+
+    try {
+      const result = await geminiClient.analyzeCode(
+        codeFile.language,
+        codeFile.content,
       );
-    }
 
-    return findingRepository.create({
-      analysisId,
-      lineStart: data.lineStart,
-      lineEnd: data.lineEnd,
-      type: data.type,
-      severity: data.severity,
-      title: data.title,
-      description: data.description,
-      suggestion: data.suggestion,
-    });
-  }
+      const updatedAnalysis = await analysisRepository.updateResult(
+        analysis._id.toString(),
+        {
+          summary: result.summary,
+          overallScore: result.overallScore,
+          improvedCode: result.improvedCode,
+          status: "completed",
+        },
+      );
 
-  async createMany(data: CreateFindingData[]) {
-    if (data.length === 0) {
-      return [];
-    }
-
-    const findings = data.map((finding) => {
-      if (!Types.ObjectId.isValid(finding.analysisId)) {
-        throw new AppError("Invalid analysis ID", 400);
+      if (!updatedAnalysis) {
+        throw new AppError("Analysis not found", 404);
       }
 
-      if (finding.lineEnd < finding.lineStart) {
-        throw new AppError(
-          "Finding lineEnd cannot be less than lineStart",
-          400,
-        );
-      }
+      await findingService.deleteByAnalysisId(
+        analysis._id.toString(),
+      );
+
+      await findingService.createMany(
+        result.findings.map((finding) => ({
+          analysisId: analysis._id.toString(),
+          lineStart: finding.lineStart,
+          lineEnd: finding.lineEnd,
+          type: finding.type,
+          severity: finding.severity,
+          title: finding.title,
+          description: finding.description,
+          suggestion: finding.suggestion,
+        })),
+      );
 
       return {
-        analysisId: new Types.ObjectId(finding.analysisId),
-        lineStart: finding.lineStart,
-        lineEnd: finding.lineEnd,
-        type: finding.type,
-        severity: finding.severity,
-        title: finding.title,
-        description: finding.description,
-        suggestion: finding.suggestion,
+        analysis: updatedAnalysis,
+        findings: result.findings,
       };
-    });
+    } catch (error) {
+      await analysisRepository.updateResult(
+        analysis._id.toString(),
+        {
+          summary: "Analysis failed",
+          overallScore: 0,
+          status: "failed",
+        },
+      );
 
-    return findingRepository.createMany(findings);
-  }
-
-  async getByAnalysisId(analysisId: string) {
-    if (!Types.ObjectId.isValid(analysisId)) {
-      throw new AppError("Invalid analysis ID", 400);
+      throw error;
     }
-
-    return findingRepository.findByAnalysisId(
-      new Types.ObjectId(analysisId),
-    );
-  }
-
-  async deleteByAnalysisId(analysisId: string) {
-    if (!Types.ObjectId.isValid(analysisId)) {
-      throw new AppError("Invalid analysis ID", 400);
-    }
-
-    return findingRepository.deleteByAnalysisId(
-      new Types.ObjectId(analysisId),
-    );
   }
 }
 
-export const findingService = new FindingService();
+export const analysisService = new AnalysisService();

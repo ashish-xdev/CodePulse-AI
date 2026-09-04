@@ -91,6 +91,16 @@ class FindingService {
       new Types.ObjectId(analysisId),
     );
   }
+
+  async deleteByAnalysisId(analysisId: string) {
+    if (!Types.ObjectId.isValid(analysisId)) {
+      throw new AppError("Invalid analysis ID", 400);
+    }
+
+    return findingRepository.deleteByAnalysisId(
+      new Types.ObjectId(analysisId),
+    );
+  }
 }
 
 export const findingService = new FindingService();
