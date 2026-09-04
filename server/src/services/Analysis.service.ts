@@ -2,6 +2,7 @@ import { Types } from "mongoose";
 import { codeFileRepository } from "../repository/CodeFile.repository.js";
 import { analysisRepository } from "../repository/Analysis.repository.js";
 import { findingRepository } from "../repository/Finding.repository.js";
+import { codeFileService } from "./CodeFile.service.js";
 import { geminiClient } from "../ai/Gemini.client.js";
 import { AppError } from "../errors/AppError.js";
 
@@ -19,6 +20,7 @@ class AnalysisService {
     if (!Types.ObjectId.isValid(data.ownerId)) {
       throw new AppError("Invalid user ID", 400);
     }
+
     const codeFile = await codeFileRepository.findByIdAndOwnerId(
       data.codeFileId,
       new Types.ObjectId(data.ownerId),
@@ -27,6 +29,12 @@ class AnalysisService {
     if (!codeFile) {
       throw new AppError("Code file not found", 404);
     }
+
+    // Analysis is a meaningful user action.
+    await codeFileService.refreshExpiry(
+      data.codeFileId,
+      data.ownerId,
+    );
 
     const existingAnalysis = await analysisRepository.findByCodeFileId(
       codeFile._id,

@@ -27,7 +27,7 @@ class CodeFileRepository {
       expiresAt,
     },
     {
-      new: true,
+      returnDocument: "after",
     },
   );
 }
