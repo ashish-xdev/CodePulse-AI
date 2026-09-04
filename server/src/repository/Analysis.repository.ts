@@ -32,7 +32,7 @@ class AnalysisRepository {
     analysisId: string,
     data: UpdateAnalysisResultData,
   ): Promise<AnalysisDocument | null> {
-    return Analysis.findByIdAndUpdate(analysisId, data, { new: true });
+    return Analysis.findByIdAndUpdate(analysisId, data, { returnDocument: "after" });
   }
 
   async deleteByCodeFileId(
