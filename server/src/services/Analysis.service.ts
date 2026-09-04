@@ -12,6 +12,13 @@ interface AnalyzeCodeData {
 
 class AnalysisService {
   async analyze(data: AnalyzeCodeData) {
+    if (!Types.ObjectId.isValid(data.codeFileId)) {
+      throw new AppError("Invalid code file ID", 400);
+    }
+
+    if (!Types.ObjectId.isValid(data.ownerId)) {
+      throw new AppError("Invalid user ID", 400);
+    }
     const codeFile = await codeFileRepository.findByIdAndOwnerId(
       data.codeFileId,
       new Types.ObjectId(data.ownerId),
